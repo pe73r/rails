@@ -19,6 +19,7 @@ module ActiveRecord
         @cache.columns_hash("posts")
         @cache.data_sources("posts")
         @cache.primary_keys("posts")
+        @cache.indexes("posts")
 
         new_cache = YAML.load(YAML.dump(@cache))
         assert_no_queries do
@@ -26,6 +27,7 @@ module ActiveRecord
           assert_equal 12, new_cache.columns_hash("posts").size
           assert new_cache.data_sources("posts")
           assert_equal "id", new_cache.primary_keys("posts")
+          assert_equal 1, new_cache.indexes("posts").size
         end
       end
 
@@ -38,6 +40,10 @@ module ActiveRecord
           assert_equal 11, cache.columns_hash("posts").size
           assert cache.data_sources("posts")
           assert_equal "id", cache.primary_keys("posts")
+        end
+
+        assert_queries 1 do
+          assert_equal 1, cache.indexes("posts")
         end
       end
 
@@ -55,11 +61,17 @@ module ActiveRecord
         assert_equal columns_hash, @cache.columns_hash("posts")
       end
 
+      def test_caches_indexes
+        indexes = @cache.indexes("posts")
+        assert_equal indexes, @cache.indexes("posts")
+      end
+
       def test_clearing
         @cache.columns("posts")
         @cache.columns_hash("posts")
         @cache.data_sources("posts")
         @cache.primary_keys("posts")
+        @cache.indexes("posts")
 
         @cache.clear!
 
@@ -71,6 +83,7 @@ module ActiveRecord
         @cache.columns_hash("posts")
         @cache.data_sources("posts")
         @cache.primary_keys("posts")
+        @cache.indexes("posts")
 
         @cache = Marshal.load(Marshal.dump(@cache))
 
@@ -79,6 +92,7 @@ module ActiveRecord
           assert_equal 12, @cache.columns_hash("posts").size
           assert @cache.data_sources("posts")
           assert_equal "id", @cache.primary_keys("posts")
+          assert_equal 1, @cache.indexes("posts").size
         end
       end
 
@@ -108,7 +122,6 @@ module ActiveRecord
       end
 
       private
-
         def schema_dump_path
           "test/assets/schema_dump_5_1.yml"
         end
