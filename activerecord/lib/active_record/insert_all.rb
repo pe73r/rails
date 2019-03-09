@@ -126,11 +126,13 @@ module ActiveRecord
         end
 
         def conflict_target
-          index = insert_all.unique_by_index
-
-          sql = +"(#{quote_columns(index&.columns || insert_all.primary_keys).join(',')})"
-          sql << " WHERE #{index.where}" if index&.where
-          sql
+          if index = insert_all.unique_by_index
+            sql = +"(#{quote_columns(index.columns).join(',')})"
+            sql << " WHERE #{index.where}" if index.where
+            sql
+          elsif update_duplicates?
+            "(#{quote_columns(insert_all.primary_keys).join(',')})"
+          end
         end
 
         def updatable_columns
