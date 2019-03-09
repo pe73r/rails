@@ -62,7 +62,7 @@ module ActiveRecord
         end
 
         if unique_index && !connection.supports_insert_conflict_target?
-          raise ArgumentError, "#{connection.class} does not support :unique_by"
+          raise ArgumentError, "#{connection.class} does not support :unique_index"
         end
       end
 

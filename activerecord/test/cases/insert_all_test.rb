@@ -100,6 +100,8 @@ class InsertAllTest < ActiveRecord::TestCase
   end
 
   def test_insert_all_and_upsert_all_with_index_finding_options
+    skip unless supports_insert_conflict_target?
+
     assert_difference "Book.count", +3 do
       Book.insert_all [{ name: "Rework", author_id: 1 }], unique_index: :isbn
       Book.insert_all [{ name: "Remote", author_id: 1 }], unique_index: %i( author_id name )
@@ -112,6 +114,8 @@ class InsertAllTest < ActiveRecord::TestCase
   end
 
   def test_insert_all_and_upsert_all_raises_when_index_is_missing
+    skip unless supports_insert_conflict_target?
+
     [ :cats, %i( author_id isbn ) ].each do |wrong_index|
       error = assert_raises ArgumentError do
         Book.insert_all [{ name: "Rework", author_id: 1 }], unique_index: wrong_index
