@@ -45,7 +45,13 @@ namespace :test do
       n = ENV["BUILDKITE_PARALLEL_JOB"].to_i
       m = ENV["BUILDKITE_PARALLEL_JOB_COUNT"].to_i
 
-      test_files = test_files.each_slice(m).map { |slice| slice[n] }.compact
+      long_running_file = "test/application/test_runner_test.rb"
+      if n.zero?
+        test_files = [long_running_file]
+      else
+        test_files.delete(long_running_file)
+        test_files = test_files.each_slice(m).map { |slice| slice[n] }.compact
+      end
     end
 
     test_files.each do |file|
