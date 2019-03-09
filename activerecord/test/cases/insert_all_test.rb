@@ -99,16 +99,30 @@ class InsertAllTest < ActiveRecord::TestCase
     end
   end
 
-  def test_insert_all_and_upsert_all_raises_when_index_is_missing
-    error = assert_raises ArgumentError do
-      Book.insert_all [{ name: "Rework", author_id: 1 }], unique_by_index: :cats
+  def test_insert_all_and_upsert_all_with_index_finding_options
+    assert_difference "Book.count", +3 do
+      Book.insert_all [{ name: "Rework", author_id: 1 }], unique_by_index: :isbn
+      Book.insert_all [{ name: "Remote", author_id: 1 }], unique_by_index: %i( author_id name )
+      Book.insert_all [{ name: "Renote", author_id: 1 }], unique_by_index: :index_books_on_isbn
     end
-    assert_match "No suitable index", error.message
 
-    error = assert_raises ArgumentError do
-      Book.upsert_all [{ name: "Rework", author_id: 1 }], unique_by_index: :cats
+    assert_raise ActiveRecord::RecordNotUnique do
+      Book.upsert_all [{ name: "Rework", author_id: 1 }], unique_by_index: :isbn
     end
-    assert_match "No suitable index", error.message
+  end
+
+  def test_insert_all_and_upsert_all_raises_when_index_is_missing
+    [ :cats, %i( author_id isbn ) ].each do |wrong_index|
+      error = assert_raises ArgumentError do
+        Book.insert_all [{ name: "Rework", author_id: 1 }], unique_by_index: wrong_index
+      end
+      assert_match "No suitable index", error.message
+
+      error = assert_raises ArgumentError do
+        Book.upsert_all [{ name: "Rework", author_id: 1 }], unique_by_index: wrong_index
+      end
+      assert_match "No suitable index", error.message
+    end
   end
 
   def test_upsert_all_updates_existing_records

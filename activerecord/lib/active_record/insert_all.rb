@@ -12,9 +12,8 @@ module ActiveRecord
       @returning = (connection.supports_insert_returning? ? primary_keys : false) if @returning.nil?
       @returning = false if @returning == []
 
-      @on_duplicate = :skip if @on_duplicate == :update && updatable_columns.empty?
-
       @unique_by_index = find_index_for(unique_by_index) if unique_by_index
+      @on_duplicate = :skip if @on_duplicate == :update && updatable_columns.empty?
 
       ensure_valid_options_for_connection!
     end
@@ -80,16 +79,18 @@ module ActiveRecord
       end
 
       def find_index_for(unique_by_index)
-        if index = indexes_by_name[unique_by_index.to_s]
+        match = Array(unique_by_index).map(&:to_s).sort
+
+        if index = indexes.find { |i| match.include?(i.name) || i.columns.sort == match }
           index
         else
           raise ArgumentError, "No suitable index found for #{unique_by_index}"
         end
       end
 
-      def indexes_by_name
+      def indexes
         # TODO: use connection.schema_cache.indexes instead.
-        connection.indexes(model.table_name).index_by(&:name)
+        connection.indexes(model.table_name)
       end
 
       class Builder
