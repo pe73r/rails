@@ -116,16 +116,16 @@ class InsertAllTest < ActiveRecord::TestCase
   def test_insert_all_and_upsert_all_raises_when_index_is_missing
     skip unless supports_insert_conflict_target?
 
-    [ :cats, %i( author_id isbn ) ].each do |wrong_index|
+    [ :cats, %i( author_id isbn ), :author_id ].each do |missing_or_non_unique_index|
       error = assert_raises ArgumentError do
-        Book.insert_all [{ name: "Rework", author_id: 1 }], unique_index: wrong_index
+        Book.insert_all [{ name: "Rework", author_id: 1 }], unique_index: missing_or_non_unique_index
       end
-      assert_match "No suitable index", error.message
+      assert_match "No unique index", error.message
 
       error = assert_raises ArgumentError do
-        Book.upsert_all [{ name: "Rework", author_id: 1 }], unique_index: wrong_index
+        Book.upsert_all [{ name: "Rework", author_id: 1 }], unique_index: missing_or_non_unique_index
       end
-      assert_match "No suitable index", error.message
+      assert_match "No unique index", error.message
     end
   end
 

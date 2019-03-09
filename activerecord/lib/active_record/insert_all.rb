@@ -81,16 +81,16 @@ module ActiveRecord
       def find_index_for(unique_index)
         match = Array(unique_index).map(&:to_s).sort
 
-        if index = indexes.find { |i| match.include?(i.name) || i.columns.sort == match }
+        if index = unique_indexes.find { |i| match.include?(i.name) || i.columns.sort == match }
           index
         else
-          raise ArgumentError, "No suitable index found for #{unique_index}"
+          raise ArgumentError, "No unique index found for #{unique_index}"
         end
       end
 
-      def indexes
+      def unique_indexes
         # TODO: use connection.schema_cache.indexes instead.
-        connection.indexes(model.table_name)
+        connection.indexes(model.table_name).select(&:unique)
       end
 
       class Builder
