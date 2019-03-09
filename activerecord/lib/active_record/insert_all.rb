@@ -80,11 +80,16 @@ module ActiveRecord
       end
 
       def find_index_for(unique_by_index)
-        if index = connection.indexes(model.table_name).index_by(&:name)[unique_by_index.to_s]
+        if index = indexes_by_name[unique_by_index.to_s]
           index
         else
           raise ArgumentError, "No suitable index found for #{unique_by_index}"
         end
+      end
+
+      def indexes_by_name
+        # TODO: use connection.schema_cache.indexes instead.
+        connection.indexes(model.table_name).index_by(&:name)
       end
 
       class Builder
