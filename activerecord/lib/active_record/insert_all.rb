@@ -2,17 +2,19 @@
 
 module ActiveRecord
   class InsertAll
-    attr_reader :model, :connection, :inserts, :on_duplicate, :returning, :unique_by
+    attr_reader :model, :connection, :inserts, :on_duplicate, :returning, :unique_by_index
 
-    def initialize(model, inserts, on_duplicate:, returning: nil, unique_by: nil)
+    def initialize(model, inserts, on_duplicate:, returning: nil, unique_by_index: nil)
       raise ArgumentError, "Empty list of attributes passed" if inserts.blank?
 
-      @model, @connection, @inserts, @on_duplicate, @returning, @unique_by = model, model.connection, inserts, on_duplicate, returning, unique_by
+      @model, @connection, @inserts, @on_duplicate, @returning = model, model.connection, inserts, on_duplicate, returning
 
       @returning = (connection.supports_insert_returning? ? primary_keys : false) if @returning.nil?
       @returning = false if @returning == []
 
       @on_duplicate = :skip if @on_duplicate == :update && updatable_columns.empty?
+
+      @unique_by_index = find_index_for(unique_by_index) if unique_by_index
 
       ensure_valid_options_for_connection!
     end
@@ -28,6 +30,11 @@ module ActiveRecord
     def updatable_columns
       keys - readonly_columns - unique_by_columns
     end
+
+    def primary_keys
+      Array(model.primary_key)
+    end
+
 
     def skip_duplicates?
       on_duplicate == :skip
@@ -55,7 +62,7 @@ module ActiveRecord
           raise ArgumentError, "#{connection.class} does not support upsert"
         end
 
-        if unique_by && !connection.supports_insert_conflict_target?
+        if unique_by_index && !connection.supports_insert_conflict_target?
           raise ArgumentError, "#{connection.class} does not support :unique_by"
         end
       end
@@ -69,13 +76,16 @@ module ActiveRecord
       end
 
       def unique_by_columns
-        unique_by ? unique_by.fetch(:columns).map(&:to_s) : []
+        Array(unique_by_index&.columns)
       end
 
-      def primary_keys
-        Array.wrap(model.primary_key)
+      def find_index_for(unique_by_index)
+        if index = connection.indexes(model.table_name).index_by(&:name)[unique_by_index.to_s]
+          index
+        else
+          raise ArgumentError, "No suitable index found for #{unique_by_index}"
+        end
       end
-
 
       class Builder
         attr_reader :model
@@ -116,9 +126,10 @@ module ActiveRecord
         end
 
         def conflict_target
-          return unless conflict_columns
-          sql = +"(#{quote_columns(conflict_columns).join(',')})"
-          sql << " WHERE #{where}" if where
+          index = insert_all.unique_by_index
+
+          sql = +"(#{quote_columns(index&.columns || insert_all.primary_keys).join(',')})"
+          sql << " WHERE #{index.where}" if index&.where
           sql
         end
 
@@ -135,18 +146,6 @@ module ActiveRecord
 
           def quote_columns(columns)
             columns.map(&connection.method(:quote_column_name))
-          end
-
-          def conflict_columns
-            @conflict_columns ||= begin
-              conflict_columns = insert_all.unique_by.fetch(:columns) if insert_all.unique_by
-              conflict_columns ||= Array.wrap(model.primary_key) if update_duplicates?
-              conflict_columns
-            end
-          end
-
-          def where
-            insert_all.unique_by && insert_all.unique_by[:where]
           end
       end
   end

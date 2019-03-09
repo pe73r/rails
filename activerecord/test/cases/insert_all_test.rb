@@ -95,8 +95,20 @@ class InsertAllTest < ActiveRecord::TestCase
 
     assert_raise ActiveRecord::RecordNotUnique do
       Book.insert_all [{ id: 1, name: "Agile Web Development with Rails" }],
-        unique_by: { columns: %i{author_id name} }
+        unique_by_index: :index_books_on_author_id_and_name
     end
+  end
+
+  def test_insert_all_and_upsert_all_raises_when_index_is_missing
+    error = assert_raises ArgumentError do
+      Book.insert_all [{ name: "Rework", author_id: 1 }], unique_by_index: :cats
+    end
+    assert_match "No suitable index", error.message
+
+    error = assert_raises ArgumentError do
+      Book.upsert_all [{ name: "Rework", author_id: 1 }], unique_by_index: :cats
+    end
+    assert_match "No suitable index", error.message
   end
 
   def test_upsert_all_updates_existing_records
@@ -120,7 +132,7 @@ class InsertAllTest < ActiveRecord::TestCase
 
     Book.upsert_all [{ id: 101, name: "Perelandra", author_id: 7 }]
     Book.upsert_all [{ id: 103, name: "Perelandra", author_id: 7, isbn: "1974522598" }],
-      unique_by: { columns: %i{author_id name} }
+      unique_by_index: :index_books_on_author_id_and_name
 
     book = Book.find_by(name: "Perelandra")
     assert_equal 101, book.id, "Should not have updated the ID"
@@ -132,7 +144,7 @@ class InsertAllTest < ActiveRecord::TestCase
 
     Book.upsert_all [{ name: "Out of the Silent Planet", author_id: 7, isbn: "1974522598", published_on: Date.new(1938, 4, 1) }]
     Book.upsert_all [{ name: "Perelandra", author_id: 7, isbn: "1974522598" }],
-      unique_by: { columns: %w[ isbn ], where: "published_on IS NOT NULL" }
+      unique_by_index: :index_books_on_isbn
 
     assert_equal ["Out of the Silent Planet", "Perelandra"], Book.where(isbn: "1974522598").order(:name).pluck(:name)
   end
