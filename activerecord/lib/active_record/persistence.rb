@@ -64,8 +64,8 @@ module ActiveRecord
       # serialization.
       #
       # See <tt>ActiveRecord::Persistence#insert_all</tt> for documentation.
-      def insert(attributes, returning: nil, unique_by_index: nil)
-        insert_all([ attributes ], returning: returning, unique_by_index: unique_by_index)
+      def insert(attributes, returning: nil, unique_index: nil)
+        insert_all([ attributes ], returning: returning, unique_index: unique_index)
       end
 
       # Inserts multiple records into the database. This method constructs a single SQL INSERT
@@ -92,11 +92,11 @@ module ActiveRecord
       #   <tt>returning: %w[ id name ]</tt> to return the id and name of every successfully inserted
       #   record or pass <tt>returning: false</tt> to omit the clause.
       #
-      # [:unique_by_index]
+      # [:unique_index]
       #   (Postgres and SQLite only) In a table with more than one unique constaint or index,
       #   new records may be considered duplicates according to different criteria. By default,
       #   new rows will be skipped if they violate _any_ unique constraint/index. By passing
-      #   <tt>:unique_by_index</tt>, you can skip rows that would create duplicates according to the given
+      #   <tt>:unique_index</tt>, you can skip rows that would create duplicates according to the given
       #   constraint but raise <tt>ActiveRecord::RecordNotUnique</tt> if rows violate other constraints.
       #
       #   For example, maybe you assume a client will try to import the same ISBNs more than
@@ -106,7 +106,7 @@ module ActiveRecord
       #
       #   Indexes can be identified by name:
       #
-      #     unique_by_index: :index_books_on_isbn
+      #     unique_index: :index_books_on_isbn
       #
       # ==== Example
       #
@@ -117,8 +117,8 @@ module ActiveRecord
       #     { id: 1, title: 'Eloquent Ruby', author: 'Russ' }
       #   ])
       #
-      def insert_all(attributes, returning: nil, unique_by_index: nil)
-        InsertAll.new(self, attributes, on_duplicate: :skip, returning: returning, unique_by_index: unique_by_index).execute
+      def insert_all(attributes, returning: nil, unique_index: nil)
+        InsertAll.new(self, attributes, on_duplicate: :skip, returning: returning, unique_index: unique_index).execute
       end
 
       # Inserts a single record into the databases. This method constructs a single SQL INSERT
@@ -186,8 +186,8 @@ module ActiveRecord
       # normal type casting and serialization.
       #
       # See <tt>ActiveRecord::Persistence#upsert_all</tt> for documentation.
-      def upsert(attributes, returning: nil, unique_by_index: nil)
-        upsert_all([ attributes ], returning: returning, unique_by_index: unique_by_index)
+      def upsert(attributes, returning: nil, unique_index: nil)
+        upsert_all([ attributes ], returning: returning, unique_index: unique_index)
       end
 
       # Upserts (creates-or-updates) multiple records into the database. This method constructs
@@ -212,22 +212,22 @@ module ActiveRecord
       #   <tt>returning: %w[ id name ]</tt> to return the id and name of every successfully inserted
       #   record or pass <tt>returning: false</tt> to omit the clause.
       #
-      # [:unique_by_index]
+      # [:unique_index]
       #   (Postgres and SQLite only) In a table with more than one unique constaint or index,
       #   new records may be considered duplicates according to different criteria. For MySQL,
       #   an upsert will take place if a new record violates _any_ unique constraint. For
       #   Postgres and SQLite, new rows will replace existing rows when the new row has the
-      #   same primary key as the existing row. By passing <tt>:unique_by_index</tt>, you can supply
+      #   same primary key as the existing row. By passing <tt>:unique_index</tt>, you can supply
       #   a different index than the primary key one to match new records to existing ones.
       #
       #   For example, if you have a unique index on the ISBN column and pass that as
-      #   <tt>:unique_by_index</tt>, a new record with the same ISBN as an existing record
+      #   <tt>:unique_index</tt>, a new record with the same ISBN as an existing record
       #   will replace the existing record but a new record with the same primary key
       #   as an existing record will raise <tt>ActiveRecord::RecordNotUnique</tt>.
       #
       #   Indexes can be identified by name:
       #
-      #     unique_by_index: :index_books_on_isbn
+      #     unique_index: :index_books_on_isbn
       #
       # ==== Examples
       #
@@ -237,9 +237,9 @@ module ActiveRecord
       #   Book.upsert_all([
       #     { title: 'Rework', author: 'David', isbn: '1' },
       #     { title: 'Eloquent Ruby', author: 'Russ', isbn: '1' }
-      #   ], unique_by_index: :index_books_on_isbn)
-      def upsert_all(attributes, returning: nil, unique_by_index: nil)
-        InsertAll.new(self, attributes, on_duplicate: :update, returning: returning, unique_by_index: unique_by_index).execute
+      #   ], unique_index: :index_books_on_isbn)
+      def upsert_all(attributes, returning: nil, unique_index: nil)
+        InsertAll.new(self, attributes, on_duplicate: :update, returning: returning, unique_index: unique_index).execute
       end
 
       # Given an attributes hash, +instantiate+ returns a new instance of

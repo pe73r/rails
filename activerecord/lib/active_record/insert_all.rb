@@ -2,9 +2,9 @@
 
 module ActiveRecord
   class InsertAll
-    attr_reader :model, :connection, :inserts, :on_duplicate, :returning, :unique_by_index
+    attr_reader :model, :connection, :inserts, :on_duplicate, :returning, :unique_index
 
-    def initialize(model, inserts, on_duplicate:, returning: nil, unique_by_index: nil)
+    def initialize(model, inserts, on_duplicate:, returning: nil, unique_index: nil)
       raise ArgumentError, "Empty list of attributes passed" if inserts.blank?
 
       @model, @connection, @inserts, @on_duplicate, @returning = model, model.connection, inserts, on_duplicate, returning
@@ -12,7 +12,7 @@ module ActiveRecord
       @returning = (connection.supports_insert_returning? ? primary_keys : false) if @returning.nil?
       @returning = false if @returning == []
 
-      @unique_by_index = find_index_for(unique_by_index) if unique_by_index
+      @unique_index = find_index_for(unique_index) if unique_index
       @on_duplicate = :skip if @on_duplicate == :update && updatable_columns.empty?
 
       ensure_valid_options_for_connection!
@@ -61,7 +61,7 @@ module ActiveRecord
           raise ArgumentError, "#{connection.class} does not support upsert"
         end
 
-        if unique_by_index && !connection.supports_insert_conflict_target?
+        if unique_index && !connection.supports_insert_conflict_target?
           raise ArgumentError, "#{connection.class} does not support :unique_by"
         end
       end
@@ -75,16 +75,16 @@ module ActiveRecord
       end
 
       def unique_by_columns
-        Array(unique_by_index&.columns)
+        Array(unique_index&.columns)
       end
 
-      def find_index_for(unique_by_index)
-        match = Array(unique_by_index).map(&:to_s).sort
+      def find_index_for(unique_index)
+        match = Array(unique_index).map(&:to_s).sort
 
         if index = indexes.find { |i| match.include?(i.name) || i.columns.sort == match }
           index
         else
-          raise ArgumentError, "No suitable index found for #{unique_by_index}"
+          raise ArgumentError, "No suitable index found for #{unique_index}"
         end
       end
 
@@ -132,7 +132,7 @@ module ActiveRecord
         end
 
         def conflict_target
-          if index = insert_all.unique_by_index
+          if index = insert_all.unique_index
             sql = +"(#{quote_columns(index.columns).join(',')})"
             sql << " WHERE #{index.where}" if index.where
             sql
